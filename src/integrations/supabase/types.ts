@@ -14,11 +14,74 @@ export type Database = {
   }
   public: {
     Tables: {
+      assets: {
+        Row: {
+          client_id: string
+          created_at: string
+          id: string
+          ip_address: string
+          name: string
+          status: string
+          vulnerabilities: Json | null
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          id?: string
+          ip_address: string
+          name: string
+          status: string
+          vulnerabilities?: Json | null
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          id?: string
+          ip_address?: string
+          name?: string
+          status?: string
+          vulnerabilities?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assets_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clients: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          name: string
+          settings: Json | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          name: string
+          settings?: Json | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string
+          settings?: Json | null
+        }
+        Relationships: []
+      }
       logs: {
         Row: {
           action_taken: string | null
           alert_category: string | null
           alert_name: string | null
+          client_id: string | null
           comments: string | null
           destination_ip: string | null
           destination_port: number | null
@@ -55,6 +118,7 @@ export type Database = {
           action_taken?: string | null
           alert_category?: string | null
           alert_name?: string | null
+          client_id?: string | null
           comments?: string | null
           destination_ip?: string | null
           destination_port?: number | null
@@ -91,6 +155,7 @@ export type Database = {
           action_taken?: string | null
           alert_category?: string | null
           alert_name?: string | null
+          client_id?: string | null
           comments?: string | null
           destination_ip?: string | null
           destination_port?: number | null
@@ -123,7 +188,15 @@ export type Database = {
           timestamp?: string
           user_name?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "logs_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

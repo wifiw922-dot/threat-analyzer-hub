@@ -1,9 +1,12 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { 
   Shield, 
   Users, 
@@ -18,17 +21,104 @@ import {
   Monitor,
   Eye,
   TrendingUp,
-  Zap
+  Zap,
+  Loader2
 } from "lucide-react";
 
 const SOCDashboard = () => {
   const [selectedClient, setSelectedClient] = useState<string | null>(null);
 
-  const clients = [
-    { id: "1", name: "Acme Corp", status: "active", alerts: 3, assets: 45 },
-    { id: "2", name: "TechStart Inc", status: "active", alerts: 1, assets: 23 },
-    { id: "3", name: "SecureBank", status: "monitoring", alerts: 0, assets: 89 },
-  ];
+  // Fetch clients data
+  const { data: clients = [], isLoading: clientsLoading } = useQuery({
+    queryKey: ['clients'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('clients')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data;
+    }
+  });
+
+  // Fetch all logs and assets for dashboard overview
+  const { data: allLogs = [] } = useQuery({
+    queryKey: ['all-logs'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('logs')
+        .select('*')
+        .order('timestamp', { ascending: false });
+      
+      if (error) throw error;
+      return data;
+    }
+  });
+
+  const { data: allAssets = [] } = useQuery({
+    queryKey: ['all-assets'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('assets')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data;
+    }
+  });
+
+  // Fetch assets data for selected client
+  const { data: assets = [] } = useQuery({
+    queryKey: ['assets', selectedClient],
+    queryFn: async () => {
+      if (!selectedClient) return [];
+      const { data, error } = await supabase
+        .from('assets')
+        .select('*')
+        .eq('client_id', selectedClient)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!selectedClient
+  });
+
+  // Fetch logs data for selected client
+  const { data: logs = [] } = useQuery({
+    queryKey: ['logs', selectedClient],
+    queryFn: async () => {
+      if (!selectedClient) return [];
+      const { data, error } = await supabase
+        .from('logs')
+        .select('*')
+        .eq('client_id', selectedClient)
+        .order('timestamp', { ascending: false })
+        .limit(10);
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!selectedClient
+  });
+
+  // Calculate stats from real data
+  const totalAlerts = logs.filter(log => log.severity === 'high' || log.severity === 'critical').length;
+  const totalAssets = assets.length;
+  const onlineAssets = assets.filter(asset => asset.status === 'online').length;
+
+  if (clientsLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="flex items-center gap-2">
+          <Loader2 className="h-6 w-6 animate-spin" />
+          <span>Loading SOC Dashboard...</span>
+        </div>
+      </div>
+    );
+  }
 
   if (!selectedClient) {
     return (
@@ -78,7 +168,7 @@ const SOCDashboard = () => {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-soc-danger">
-                  {clients.reduce((sum, client) => sum + client.alerts, 0)}
+                  {allLogs.filter(log => log.severity === 'high' || log.severity === 'critical').length}
                 </div>
                 <p className="text-xs text-muted-foreground">Require attention</p>
               </CardContent>
@@ -91,7 +181,7 @@ const SOCDashboard = () => {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-soc-success">
-                  {clients.reduce((sum, client) => sum + client.assets, 0)}
+                  {allAssets.length}
                 </div>
                 <p className="text-xs text-muted-foreground">Under monitoring</p>
               </CardContent>
@@ -122,41 +212,49 @@ const SOCDashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {clients.map((client) => (
-                  <Card 
-                    key={client.id} 
-                    className="cursor-pointer transition-all duration-300 hover:shadow-glow hover:border-primary/50 bg-gradient-surface"
-                    onClick={() => setSelectedClient(client.id)}
-                  >
-                    <CardHeader className="pb-3">
-                      <div className="flex items-center justify-between">
-                        <CardTitle className="text-lg">{client.name}</CardTitle>
-                        <Badge 
-                          variant={client.status === "active" ? "default" : "secondary"}
-                          className={client.status === "active" ? "bg-soc-success" : "bg-soc-warning"}
-                        >
-                          {client.status}
-                        </Badge>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-2">
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">Active Alerts</span>
-                        <span className={client.alerts > 0 ? "text-soc-danger font-medium" : "text-soc-success"}>
-                          {client.alerts}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">Protected Assets</span>
-                        <span className="text-soc-accent font-medium">{client.assets}</span>
-                      </div>
-                      <Button className="w-full mt-4 bg-gradient-primary hover:opacity-90">
-                        <Eye className="h-4 w-4 mr-2" />
-                        Access Workspace
-                      </Button>
-                    </CardContent>
-                  </Card>
-                ))}
+                {clients.map((client) => {
+                  // Get client-specific stats
+                  const clientAssets = allAssets.filter(asset => asset.client_id === client.id).length;
+                  const clientAlerts = allLogs
+                    .filter(log => log.client_id === client.id && (log.severity === 'high' || log.severity === 'critical'))
+                    .length;
+                  
+                  return (
+                    <Card 
+                      key={client.id} 
+                      className="cursor-pointer transition-all duration-300 hover:shadow-glow hover:border-primary/50 bg-gradient-surface"
+                      onClick={() => setSelectedClient(client.id)}
+                    >
+                      <CardHeader className="pb-3">
+                        <div className="flex items-center justify-between">
+                          <CardTitle className="text-lg">{client.name}</CardTitle>
+                          <Badge 
+                            variant="default"
+                            className="bg-soc-success"
+                          >
+                            active
+                          </Badge>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="space-y-2">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">Active Alerts</span>
+                          <span className={clientAlerts > 0 ? "text-soc-danger font-medium" : "text-soc-success"}>
+                            {clientAlerts}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">Protected Assets</span>
+                          <span className="text-soc-accent font-medium">{clientAssets}</span>
+                        </div>
+                        <Button className="w-full mt-4 bg-gradient-primary hover:opacity-90">
+                          <Eye className="h-4 w-4 mr-2" />
+                          Access Workspace
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
               </div>
             </CardContent>
           </Card>
@@ -232,27 +330,46 @@ const SOCDashboard = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    <div className="flex items-center justify-between p-3 rounded-lg bg-soc-surface border border-soc-success/20">
-                      <div>
-                        <div className="font-medium">User Login - Normal</div>
-                        <div className="text-sm text-muted-foreground">192.168.1.45 - john.doe@company.com</div>
+                    {logs.slice(0, 5).map((log) => {
+                      const getBadgeColor = (label: string) => {
+                        switch (label) {
+                          case 'TP': return 'bg-soc-success';
+                          case 'TN': return 'bg-soc-success';
+                          case 'FP': return 'bg-soc-danger';
+                          case 'FN': return 'bg-soc-warning';
+                          default: return 'bg-gray-500';
+                        }
+                      };
+
+                      const getBadgeText = (label: string) => {
+                        switch (label) {
+                          case 'TP': return 'True Positive';
+                          case 'TN': return 'True Negative';
+                          case 'FP': return 'False Positive';
+                          case 'FN': return 'False Negative';
+                          default: return 'Unknown';
+                        }
+                      };
+
+                      return (
+                        <div key={log.event_id} className="flex items-center justify-between p-3 rounded-lg bg-soc-surface border border-border/20">
+                          <div>
+                            <div className="font-medium">{log.alert_name || log.event_type}</div>
+                            <div className="text-sm text-muted-foreground">
+                              {log.host_ip} - {log.host_name || 'Unknown Host'}
+                            </div>
+                          </div>
+                          <Badge className={getBadgeColor(log.label)}>
+                            {getBadgeText(log.label)}
+                          </Badge>
+                        </div>
+                      );
+                    })}
+                    {logs.length === 0 && (
+                      <div className="text-center py-8 text-muted-foreground">
+                        No recent classifications available
                       </div>
-                      <Badge className="bg-soc-success">True Positive</Badge>
-                    </div>
-                    <div className="flex items-center justify-between p-3 rounded-lg bg-soc-surface border border-soc-danger/20">
-                      <div>
-                        <div className="font-medium">Suspicious File Access</div>
-                        <div className="text-sm text-muted-foreground">10.0.0.23 - system/sensitive/data.db</div>
-                      </div>
-                      <Badge variant="destructive">False Positive</Badge>
-                    </div>
-                    <div className="flex items-center justify-between p-3 rounded-lg bg-soc-surface border border-soc-warning/20">
-                      <div>
-                        <div className="font-medium">Network Scan Detected</div>
-                        <div className="text-sm text-muted-foreground">External IP: 203.45.67.89</div>
-                      </div>
-                      <Badge className="bg-soc-warning text-soc-warning-foreground">Review</Badge>
-                    </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -269,7 +386,7 @@ const SOCDashboard = () => {
                     <div className="p-3 rounded-lg bg-soc-surface">
                       <div className="text-sm font-medium text-soc-accent mb-2">System Analysis</div>
                       <div className="text-sm text-muted-foreground">
-                        3 anomalies detected in the last hour. Network scan from external IP requires investigation.
+                        {totalAlerts} high priority alerts detected. {logs.filter(log => log.label === 'FP').length} false positives require review.
                       </div>
                     </div>
                     <Button className="w-full bg-gradient-primary hover:opacity-90">
@@ -290,18 +407,75 @@ const SOCDashboard = () => {
                 <CardContent className="space-y-4">
                   <div className="flex items-center justify-between">
                     <span className="text-muted-foreground">Total Assets</span>
-                    <span className="font-bold text-soc-accent">{selectedClientData?.assets}</span>
+                    <span className="font-bold text-soc-accent">{totalAssets}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-muted-foreground">Online</span>
-                    <span className="font-bold text-soc-success">{selectedClientData?.assets - 2}</span>
+                    <span className="font-bold text-soc-success">{onlineAssets}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-muted-foreground">Offline</span>
-                    <span className="font-bold text-soc-danger">2</span>
+                    <span className="font-bold text-soc-danger">{totalAssets - onlineAssets}</span>
                   </div>
                 </CardContent>
               </Card>
+
+              <div className="md:col-span-2 lg:col-span-3">
+                <Card className="shadow-elevated">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Server className="h-5 w-5" />
+                      Asset Inventory
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {assets.length > 0 ? (
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Asset Name</TableHead>
+                            <TableHead>IP Address</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead>Vulnerabilities</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {assets.map((asset) => (
+                            <TableRow key={asset.id}>
+                              <TableCell className="font-medium">{asset.name}</TableCell>
+                              <TableCell>{asset.ip_address}</TableCell>
+                              <TableCell>
+                                <Badge 
+                                  className={
+                                    asset.status === 'online' ? 'bg-soc-success' :
+                                    asset.status === 'offline' ? 'bg-soc-danger' :
+                                    'bg-soc-warning'
+                                  }
+                                >
+                                  {asset.status}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                {Array.isArray(asset.vulnerabilities) && asset.vulnerabilities.length > 0 ? (
+                                  <Badge variant="destructive">
+                                    {asset.vulnerabilities.length} vulnerabilities
+                                  </Badge>
+                                ) : (
+                                  <Badge className="bg-soc-success">Clean</Badge>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    ) : (
+                      <div className="text-center py-8 text-muted-foreground">
+                        No assets found for this client
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
             </div>
           </TabsContent>
 
