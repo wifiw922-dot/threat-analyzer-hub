@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { UserMenu } from "@/components/auth/UserMenu";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { 
   Shield, 
@@ -138,10 +138,7 @@ const SOCDashboard = () => {
                   <p className="text-muted-foreground text-sm">Security Operations Dashboard</p>
                 </div>
               </div>
-              <Avatar>
-                <AvatarImage src="/placeholder-avatar.jpg" />
-                <AvatarFallback className="bg-primary text-primary-foreground">SA</AvatarFallback>
-              </Avatar>
+              <UserMenu />
             </div>
           </div>
         </header>
@@ -290,9 +287,7 @@ const SOCDashboard = () => {
                 </div>
               </div>
             </div>
-            <Avatar>
-              <AvatarFallback className="bg-primary text-primary-foreground">SA</AvatarFallback>
-            </Avatar>
+            <UserMenu />
           </div>
         </div>
       </header>
