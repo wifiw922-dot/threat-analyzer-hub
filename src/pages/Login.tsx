@@ -97,7 +97,7 @@ const Login = () => {
 
         {/* Footer */}
         <div className="text-center mt-8 text-sm text-muted-foreground">
-          <p>© 2024 SOC Command Center. All rights reserved.</p>
+          <p>© 2025 NextDefense. All rights reserved.</p>
         </div>
       </div>
     </div>
