@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UserMenu } from "@/components/auth/UserMenu";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ReportsTab } from "@/components/reports/ReportsTab";
 import { 
   Shield, 
   Users, 
@@ -475,20 +476,11 @@ const SOCDashboard = () => {
           </TabsContent>
 
           <TabsContent value="reports" className="space-y-6">
-            <Card className="shadow-elevated">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <FileText className="h-5 w-5" />
-                  Security Reports
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-8">
-                  <TrendingUp className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">Report generation and audit tools coming soon</p>
-                </div>
-              </CardContent>
-            </Card>
+            <ReportsTab 
+              clientName={selectedClientData?.name || 'Unknown Client'}
+              logs={logs}
+              assets={assets}
+            />
           </TabsContent>
 
           <TabsContent value="history" className="space-y-6">
