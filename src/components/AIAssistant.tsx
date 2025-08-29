@@ -30,7 +30,16 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ clientId, clientName }
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
-      content: `Hello! I'm your AI security assistant for ${clientName || 'your organization'}. I can help you analyze security events, understand asset vulnerabilities, and provide recommendations based on your current security data. How can I assist you today?`,
+      content: `Hello! I'm your senior cybersecurity SOC analyst. I specialize in threat detection, incident response, and security operations for ${clientName || 'your organization'}. I can provide detailed analysis of your security events, vulnerability assessments, threat hunting guidance, and strategic security recommendations.
+
+I have access to your current security data including events, alerts, and asset inventory. Feel free to ask me about:
+• Threat analysis and incident investigation
+• Risk assessment and prioritization  
+• Security recommendations and best practices
+• Compliance and security frameworks
+• MITRE ATT&CK mapping and threat intelligence
+
+What security challenge can I help you tackle today?`,
       sender: 'ai',
       timestamp: new Date(),
     }
@@ -50,18 +59,18 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ clientId, clientName }
   // Quick action buttons
   const quickActions = [
     { 
-      label: 'Analyze Recent Events', 
-      message: 'Analyze the most recent security events and tell me what I should be concerned about',
+      label: 'Threat Analysis', 
+      message: 'Perform a comprehensive threat analysis of my recent security events. What are the key threats I should be concerned about?',
       icon: Activity 
     },
     { 
-      label: 'Asset Vulnerabilities', 
-      message: 'Show me the current vulnerability status of my assets',
+      label: 'Risk Assessment', 
+      message: 'Conduct a risk assessment of my current security posture. What are my highest priority vulnerabilities and how should I address them?',
       icon: Shield 
     },
     { 
-      label: 'Security Recommendations', 
-      message: 'What security improvements do you recommend based on my current environment?',
+      label: 'Incident Response Plan', 
+      message: 'Based on my current security events, what incident response actions should I take and how should I prioritize them?',
       icon: AlertCircle 
     },
   ];
@@ -82,19 +91,25 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ clientId, clientName }
     setIsLoading(true);
 
     try {
-      const { data } = await axios.post(
-        `https://jinzgjgbghalnkzevhjj.supabase.co/functions/v1/ai-chat`,
-        {
+      // Prepare conversation history for context
+      const conversationHistory = messages
+        .slice(-10) // Last 10 messages for context
+        .map(msg => ({
+          role: msg.sender === 'user' ? 'user' as const : 'assistant' as const,
+          content: msg.content
+        }));
+
+      const { data } = await supabase.functions.invoke('ai-chat', {
+        body: {
           message: messageToSend,
           clientId: clientId,
-        },
-        {
-          headers: {
-            'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImppbnpnamdiZ2hhbG5remV2aGpqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE5OTExOTcsImV4cCI6MjA2NzU2NzE5N30.aJqy6_9IiB3rB7HU7tNA5-S--4i59h2AhwwOhhnJNUg`,
-            'Content-Type': 'application/json',
-          },
+          conversationHistory: conversationHistory,
         }
-      );
+      });
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
 
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
@@ -111,7 +126,7 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ clientId, clientName }
       
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: "I'm sorry, I encountered an error while processing your request. This might be due to a connection issue. Please try again in a moment.",
+        content: "I'm sorry, I encountered an error while processing your security analysis request. Please ensure you have a stable connection and try again.",
         sender: 'ai',
         timestamp: new Date(),
       };
@@ -138,10 +153,10 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ clientId, clientName }
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2">
           <MessageSquare className="h-5 w-5" />
-          AI Security Assistant
+          Senior SOC Analyst AI
           <Badge variant="outline" className="ml-auto">
             <Brain className="h-3 w-3 mr-1" />
-            AI-Powered
+            Expert AI
           </Badge>
         </CardTitle>
         {!clientId && (
