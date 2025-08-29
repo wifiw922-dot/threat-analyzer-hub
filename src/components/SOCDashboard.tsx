@@ -25,6 +25,7 @@ import {
   Zap,
   Loader2
 } from "lucide-react";
+import { AIAssistant } from "@/components/AIAssistant";
 
 const SOCDashboard = () => {
   const [selectedClient, setSelectedClient] = useState<string | null>(null);
@@ -296,7 +297,7 @@ const SOCDashboard = () => {
       {/* Client Workspace */}
       <main className="container mx-auto px-6 py-6">
         <Tabs defaultValue="monitor" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 lg:grid-cols-4 bg-card border border-border">
+          <TabsList className="grid w-full grid-cols-5 lg:grid-cols-5 bg-card border border-border">
             <TabsTrigger value="monitor" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               <Monitor className="h-4 w-4 mr-2" />
               Monitor
@@ -304,6 +305,10 @@ const SOCDashboard = () => {
             <TabsTrigger value="assets" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               <Server className="h-4 w-4 mr-2" />
               Assets
+            </TabsTrigger>
+            <TabsTrigger value="ai-assistant" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <Zap className="h-4 w-4 mr-2" />
+              AI Assistant
             </TabsTrigger>
             <TabsTrigger value="reports" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               <FileText className="h-4 w-4 mr-2" />
@@ -317,7 +322,7 @@ const SOCDashboard = () => {
 
           <TabsContent value="monitor" className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <Card className="lg:col-span-2 shadow-elevated">
+              <Card className="lg:col-span-3 shadow-elevated">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Activity className="h-5 w-5 text-soc-primary" />
@@ -369,29 +374,14 @@ const SOCDashboard = () => {
                   </div>
                 </CardContent>
               </Card>
-
-              <Card className="shadow-elevated">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Zap className="h-5 w-5 text-soc-accent" />
-                    AI Assistant
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="p-3 rounded-lg bg-soc-surface">
-                      <div className="text-sm font-medium text-soc-accent mb-2">System Analysis</div>
-                      <div className="text-sm text-muted-foreground">
-                        {totalAlerts} high priority alerts detected. {logs.filter(log => log.label === 'FP').length} false positives require review.
-                      </div>
-                    </div>
-                    <Button className="w-full bg-gradient-primary hover:opacity-90">
-                      Open AI Chat
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
             </div>
+          </TabsContent>
+
+          <TabsContent value="ai-assistant" className="space-y-6">
+            <AIAssistant 
+              clientId={selectedClient}
+              clientName={selectedClientData?.name}
+            />
           </TabsContent>
 
           <TabsContent value="assets" className="space-y-6">

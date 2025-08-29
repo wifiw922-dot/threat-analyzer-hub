@@ -1,6 +1,6 @@
 export type DateRange = {
   from: Date | undefined;
-  to: Date | undefined;
+  to?: Date | undefined;
 };
 
 export interface ReportData {

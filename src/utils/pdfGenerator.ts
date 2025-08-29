@@ -196,7 +196,7 @@ export const generatePDFReport = async (
   addText(`• System Uptime: ${reportData.complianceMetrics.systemUptime}%`);
 
   // Add footer to all pages
-  const totalPages = pdf.internal.getNumberOfPages();
+  const totalPages = pdf.getNumberOfPages();
   for (let i = 1; i <= totalPages; i++) {
     pdf.setPage(i);
     addFooter();
